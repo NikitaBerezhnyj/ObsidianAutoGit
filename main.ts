@@ -1,134 +1,106 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { Plugin, Notice, FileSystemAdapter } from "obsidian";
+import { exec } from "child_process";
+import { locales } from "src/locale";
+import { CommitModal } from "src/CommitModal";
 
-// Remember to rename these classes and interfaces!
+export default class AutoGit extends Plugin {
+  async onload() {
+    const supportedLocales = ["en", "uk"] as const;
+    type SupportedLocale = (typeof supportedLocales)[number];
 
-interface MyPluginSettings {
-	mySetting: string;
-}
+    const langRaw = (this.app as any).getLocale?.() || navigator.language || "en";
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
-}
+    const lang: SupportedLocale = supportedLocales.includes(langRaw as SupportedLocale)
+      ? (langRaw as SupportedLocale)
+      : "en";
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+    const t = locales[lang];
 
-	async onload() {
-		await this.loadSettings();
+    console.log(t.pluginLoaded);
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
+    this.addCommand({
+      id: "open-commit-modal",
+      name: "Open Git Commit Modal",
+      hotkeys: [
+        {
+          modifiers: ["Mod", "Shift"],
+          key: "S"
+        }
+      ],
+      callback: async () => {
+        const changedFiles = await this.getChangedFiles();
+        if (changedFiles.length === 0) {
+          new Notice(t.noChangedFiles || "No changed files to commit.");
+          return;
+        }
+        new CommitModal(
+          this.app,
+          changedFiles,
+          message => {
+            this.commitAndPush(message);
+          },
+          t
+        ).open();
+      }
+    });
+  }
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status Bar Text');
+  gitPull() {
+    const adapter = this.app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) {
+      console.error("Adapter is not FileSystemAdapter");
+      return;
+    }
+    const cwd = adapter.getBasePath();
 
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-sample-modal-simple',
-			name: 'Open sample modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'sample-editor-command',
-			name: 'Sample editor command',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				console.log(editor.getSelection());
-				editor.replaceSelection('Sample Editor Command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-sample-modal-complex',
-			name: 'Open sample modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+    exec("git pull", { cwd }, (err, stdout, stderr) => {
+      if (stderr.includes("could not read Username")) {
+        new Notice("Git авторизація не вдалася. Перевір доступ до репозиторію (SSH або PAT).");
+      }
+      if (err) {
+        console.error("Git pull error:", stderr);
+      } else {
+        console.log("Git pull success:", stdout);
+      }
+    });
+  }
 
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-			}
-		});
+  getChangedFiles(): Promise<string[]> {
+    const adapter = this.app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) {
+      return Promise.reject("Adapter is not FileSystemAdapter");
+    }
+    const cwd = adapter.getBasePath();
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+    return new Promise((resolve, reject) => {
+      exec("git status --porcelain", { cwd }, (err, stdout) => {
+        if (err) {
+          reject(err);
+        } else {
+          const files = stdout
+            .split("\n")
+            .filter(line => line.trim().length > 0)
+            .map(line => line.slice(3));
+          resolve(files);
+        }
+      });
+    });
+  }
 
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
+  commitAndPush(message: string) {
+    const adapter = this.app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) {
+      console.error("Adapter is not FileSystemAdapter");
+      return;
+    }
+    const cwd = adapter.getBasePath();
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
-
-	onunload() {
-
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-}
-
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
-
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
-
-	constructor(app: App, plugin: MyPlugin) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
+    exec(`git add . && git commit -m "${message}" && git push`, { cwd }, (err, stdout, stderr) => {
+      if (err) {
+        console.error("Git commit/push error:", stderr);
+      } else {
+        console.log("Git commit/push success:", stdout);
+      }
+    });
+  }
 }
