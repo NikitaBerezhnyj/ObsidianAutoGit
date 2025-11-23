@@ -2,9 +2,24 @@ import { Plugin, Notice, FileSystemAdapter } from "obsidian";
 import { exec } from "child_process";
 import { locales } from "src/locale";
 import { CommitModal } from "src/CommitModal";
+import { AutoGitSettingTab } from "src/settings";
+
+interface AutoGitSettings {
+  token: string;
+}
+
+const DEFAULT_SETTINGS: AutoGitSettings = {
+  token: ""
+};
 
 export default class AutoGit extends Plugin {
+  settings: AutoGitSettings;
+
   async onload() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+    this.addSettingTab(new AutoGitSettingTab(this.app, this));
+
     const supportedLocales = ["en", "uk"] as const;
     type SupportedLocale = (typeof supportedLocales)[number];
 
@@ -44,6 +59,20 @@ export default class AutoGit extends Plugin {
       }
     });
   }
+
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+
+  // updateRemoteUrlIfNeeded() {
+  //   const token = this.settings.token;
+  //   if (!token) return;
+
+  //   const adapter = this.app.vault.adapter;
+  //   const cwd = adapter.getBasePath();
+
+  //   exec(`git remote set-url origin https://${token}@github.com/USERNAME/REPO.git`, { cwd });
+  // }
 
   gitPull() {
     const adapter = this.app.vault.adapter;
