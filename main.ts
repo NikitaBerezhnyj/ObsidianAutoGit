@@ -25,13 +25,10 @@ export default class AutoGit extends Plugin {
     const t = this.getLocaleStrings();
     const cwd = getRepoPath(this.app);
 
-    // Виконуємо pull при старті з обробкою помилок
     if (cwd) {
       await gitPull(cwd, this.settings.token);
     }
 
-    // Команда для відкриття модального вікна commit
-    // Можна викликати через Ctrl+P або через hotkey (за замовчуванням Ctrl+Shift+S)
     this.addCommand({
       id: "open-commit-modal",
       name: t.commandCommitModal,
@@ -63,7 +60,6 @@ export default class AutoGit extends Plugin {
       }
     });
 
-    // Команда для ручного pull
     this.addCommand({
       id: "manual-pull",
       name: t.commandPull,
@@ -78,7 +74,6 @@ export default class AutoGit extends Plugin {
       }
     });
 
-    // Команда для ручного push (без commit)
     this.addCommand({
       id: "manual-push",
       name: t.commandPush,
@@ -88,7 +83,6 @@ export default class AutoGit extends Plugin {
           return;
         }
 
-        // Перевіряємо чи є щось для push
         const { stdout } = await execGit("git status -sb", cwd);
 
         if (stdout.includes("ahead 0")) {
@@ -105,7 +99,6 @@ export default class AutoGit extends Plugin {
   }
 
   setupAutoCommit() {
-    // Очищуємо попередній інтервал
     if (this.autoCommitIntervalId) {
       clearInterval(this.autoCommitIntervalId);
       this.autoCommitIntervalId = null;
