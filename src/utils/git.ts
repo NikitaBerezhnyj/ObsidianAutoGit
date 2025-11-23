@@ -47,6 +47,59 @@ export async function gitPull(cwd: string, token?: string) {
   }
 }
 
+export async function gitPush(cwd: string, token?: string) {
+  console.log("[AutoGit] Pushing to remote...");
+
+  let pushSuccess = false;
+  let pushStderr = "";
+
+  if (token && token.trim().length > 0) {
+    const { stdout: remoteUrl, success: remoteSuccess } = await execGit(
+      "git remote get-url origin",
+      cwd
+    );
+
+    if (remoteSuccess && remoteUrl.trim().startsWith("https://")) {
+      let cleanUrl = remoteUrl.trim().split("\n")[0];
+
+      cleanUrl = cleanUrl.replace(/https:\/\/[^@]*@/, "https://");
+
+      if (cleanUrl.endsWith(".git")) {
+        cleanUrl = cleanUrl.slice(0, -4);
+      }
+
+      const urlWithToken = cleanUrl.replace("https://", `https://${token}@`);
+
+      const result = await execGit(`git push ${urlWithToken}`, cwd);
+      pushSuccess = result.success;
+      pushStderr = result.stderr;
+    } else {
+      const result = await execGit("git push", cwd);
+      pushSuccess = result.success;
+      pushStderr = result.stderr;
+    }
+  } else {
+    const result = await execGit("git push", cwd);
+    pushSuccess = result.success;
+    pushStderr = result.stderr;
+  }
+
+  if (!pushSuccess) {
+    if (pushStderr.includes("Authentication failed") || pushStderr.includes("could not read")) {
+      new Notice("Push failed: Authentication error. Check your token in settings.");
+    } else if (pushStderr.includes("403")) {
+      new Notice("Push failed: Access denied. Make sure your token has 'repo' scope.");
+      console.error("[AutoGit] Token may not have correct permissions.");
+    } else if (pushStderr.includes("fatal") || pushStderr.includes("error")) {
+      new Notice("Git push failed. Check console for details.");
+      console.error("[AutoGit] Push error:", pushStderr);
+    }
+  } else {
+    new Notice("✓ Pushed successfully");
+    console.log("[AutoGit] Push successful");
+  }
+}
+
 export async function getChangedFiles(cwd: string): Promise<string[]> {
   const { stdout, success } = await execGit("git status --porcelain", cwd);
 

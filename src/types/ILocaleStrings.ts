@@ -8,5 +8,7 @@ export interface ILocaleStrings {
   noChangedFiles: string;
   pluginLoaded: string;
   commandCommitModal: string;
+  commandPush: string;
+  commandPull: string;
   autoMessage: string;
 }

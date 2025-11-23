@@ -1,5 +1,12 @@
 import { Plugin, Notice } from "obsidian";
-import { getRepoPath, getChangedFiles, commitAndPush, gitPull } from "src/utils/git";
+import {
+  getRepoPath,
+  getChangedFiles,
+  commitAndPush,
+  gitPull,
+  gitPush,
+  execGit
+} from "src/utils/git";
 import { minutesToMs } from "src/utils/time";
 import { locales } from "src/utils/locale";
 import { CommitModal } from "src/CommitModal";
@@ -18,10 +25,13 @@ export default class AutoGit extends Plugin {
     const t = this.getLocaleStrings();
     const cwd = getRepoPath(this.app);
 
+    // Виконуємо pull при старті з обробкою помилок
     if (cwd) {
       await gitPull(cwd, this.settings.token);
     }
 
+    // Команда для відкриття модального вікна commit
+    // Можна викликати через Ctrl+P або через hotkey (за замовчуванням Ctrl+Shift+S)
     this.addCommand({
       id: "open-commit-modal",
       name: t.commandCommitModal,
@@ -53,10 +63,49 @@ export default class AutoGit extends Plugin {
       }
     });
 
+    // Команда для ручного pull
+    this.addCommand({
+      id: "manual-pull",
+      name: t.commandPull,
+      callback: async () => {
+        if (!cwd) {
+          new Notice("Cannot find git repository");
+          return;
+        }
+
+        new Notice("Pulling from remote...");
+        await gitPull(cwd, this.settings.token);
+      }
+    });
+
+    // Команда для ручного push (без commit)
+    this.addCommand({
+      id: "manual-push",
+      name: t.commandPush,
+      callback: async () => {
+        if (!cwd) {
+          new Notice("Cannot find git repository");
+          return;
+        }
+
+        // Перевіряємо чи є щось для push
+        const { stdout } = await execGit("git status -sb", cwd);
+
+        if (stdout.includes("ahead 0")) {
+          new Notice("Nothing to push");
+          return;
+        }
+
+        new Notice("Pushing to remote...");
+        await gitPush(cwd, this.settings.token);
+      }
+    });
+
     this.setupAutoCommit();
   }
 
   setupAutoCommit() {
+    // Очищуємо попередній інтервал
     if (this.autoCommitIntervalId) {
       clearInterval(this.autoCommitIntervalId);
       this.autoCommitIntervalId = null;
