@@ -1,6 +1,6 @@
 {
-  "id": "sample-plugin",
-  "name": "AuthGit",
+  "id": "auto-git-plugin",
+  "name": "AutoGit",
   "version": "1.1.0",
   "minAppVersion": "0.15.0",
   "description": "Automatically runs 'git pull' when the app loads and prompts to commit changes when a file is modified. Designed to help version control your Obsidian vault with Git.",
