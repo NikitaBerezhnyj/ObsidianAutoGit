@@ -7,7 +7,7 @@ import {
   gitPush,
   execGit
 } from "src/utils/git";
-import { minutesToMs } from "src/utils/time";
+import { getFormattedDateTime, minutesToMs } from "src/utils/time";
 import { locales } from "src/utils/locale";
 import { CommitModal } from "src/CommitModal";
 import { AutoGitSettingTab } from "src/settings";
@@ -107,7 +107,6 @@ export default class AutoGit extends Plugin {
     if (!this.settings.autoCommitEnabled) return;
 
     const intervalMs = minutesToMs(this.settings.autoCommitInterval);
-    const t = this.getLocaleStrings();
     const cwd = getRepoPath(this.app);
 
     if (!cwd) {
@@ -124,7 +123,11 @@ export default class AutoGit extends Plugin {
       }
 
       console.log("[AutoGit] Auto-committing changes...");
-      await commitAndPush(t.autoMessage, cwd, this.settings.token);
+
+      const dateTime = getFormattedDateTime();
+      const message = `Auto-commit: vault backup - ${dateTime}`;
+
+      await commitAndPush(message, cwd, this.settings.token);
     }, intervalMs);
 
     console.log(

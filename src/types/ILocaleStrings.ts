@@ -10,5 +10,4 @@ export interface ILocaleStrings {
   commandCommitModal: string;
   commandPush: string;
   commandPull: string;
-  autoMessage: string;
 }

@@ -12,8 +12,7 @@ export const locales: Record<"en" | "uk", ILocaleStrings> = {
     pluginLoaded: "AutoGit plugin loaded",
     commandCommitModal: "Open commit modal",
     commandPull: "Pull from remote",
-    commandPush: "Push to remote",
-    autoMessage: "Auto-commit: vault backup"
+    commandPush: "Push to remote"
   },
   uk: {
     commitTitle: "Зберегти зміни",
@@ -26,7 +25,6 @@ export const locales: Record<"en" | "uk", ILocaleStrings> = {
     pluginLoaded: "Плагін AutoGit завантажено",
     commandCommitModal: "Відкрити вікно commit",
     commandPull: "Отримати зміни з віддаленого репозиторію",
-    commandPush: "Відправити зміни на віддалений репозиторій",
-    autoMessage: "Авто-commit: резервна копія сховища"
+    commandPush: "Відправити зміни на віддалений репозиторій"
   }
 };
