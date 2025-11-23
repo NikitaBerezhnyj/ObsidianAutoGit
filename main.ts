@@ -1,135 +1,113 @@
-import { Plugin, Notice, FileSystemAdapter } from "obsidian";
-import { exec } from "child_process";
-import { locales } from "src/locale";
+import { Plugin, Notice } from "obsidian";
+import { getRepoPath, getChangedFiles, commitAndPush, gitPull } from "src/utils/git";
+import { minutesToMs } from "src/utils/time";
+import { locales } from "src/utils/locale";
 import { CommitModal } from "src/CommitModal";
 import { AutoGitSettingTab } from "src/settings";
-
-interface AutoGitSettings {
-  token: string;
-}
-
-const DEFAULT_SETTINGS: AutoGitSettings = {
-  token: ""
-};
+import { IAutoGitSettings } from "src/types/IAutoGitSettings";
+import { DEFAULT_SETTINGS } from "src/constants/constants";
 
 export default class AutoGit extends Plugin {
-  settings: AutoGitSettings;
+  settings: IAutoGitSettings;
+  autoCommitIntervalId: NodeJS.Timeout | null = null;
 
   async onload() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
-
     this.addSettingTab(new AutoGitSettingTab(this.app, this));
 
-    const supportedLocales = ["en", "uk"] as const;
-    type SupportedLocale = (typeof supportedLocales)[number];
+    const t = this.getLocaleStrings();
+    const cwd = getRepoPath(this.app);
 
-    const langRaw = (this.app as any).getLocale?.() || navigator.language || "en";
-
-    const lang: SupportedLocale = supportedLocales.includes(langRaw as SupportedLocale)
-      ? (langRaw as SupportedLocale)
-      : "en";
-
-    const t = locales[lang];
-
-    console.log(t.pluginLoaded);
+    if (cwd) {
+      await gitPull(cwd, this.settings.token);
+    }
 
     this.addCommand({
       id: "open-commit-modal",
-      name: "Open Git Commit Modal",
+      name: t.commandCommitModal,
       hotkeys: [
         {
-          modifiers: ["Mod", "Shift"],
-          key: "S"
+          modifiers: ["Ctrl", "Shift"],
+          key: "s"
         }
       ],
       callback: async () => {
-        const changedFiles = await this.getChangedFiles();
-        if (changedFiles.length === 0) {
-          new Notice(t.noChangedFiles || "No changed files to commit.");
+        if (!cwd) {
+          new Notice("Cannot find git repository");
           return;
         }
+
+        const changed = await getChangedFiles(cwd);
+
+        if (!changed.length) {
+          new Notice(t.noChangedFiles);
+          return;
+        }
+
         new CommitModal(
           this.app,
-          changedFiles,
-          message => {
-            this.commitAndPush(message);
-          },
+          changed,
+          msg => commitAndPush(msg, cwd, this.settings.token),
           t
         ).open();
       }
     });
+
+    this.setupAutoCommit();
+  }
+
+  setupAutoCommit() {
+    if (this.autoCommitIntervalId) {
+      clearInterval(this.autoCommitIntervalId);
+      this.autoCommitIntervalId = null;
+    }
+
+    if (!this.settings.autoCommitEnabled) return;
+
+    const intervalMs = minutesToMs(this.settings.autoCommitInterval);
+    const t = this.getLocaleStrings();
+    const cwd = getRepoPath(this.app);
+
+    if (!cwd) {
+      new Notice("Cannot find git repository for auto-commit");
+      return;
+    }
+
+    this.autoCommitIntervalId = setInterval(async () => {
+      const changed = await getChangedFiles(cwd);
+
+      if (!changed.length) {
+        console.log("[AutoGit] No changes to commit");
+        return;
+      }
+
+      console.log("[AutoGit] Auto-committing changes...");
+      await commitAndPush(t.autoMessage, cwd, this.settings.token);
+    }, intervalMs);
+
+    console.log(
+      `[AutoGit] Auto-commit enabled with ${this.settings.autoCommitInterval} minute interval`
+    );
+  }
+
+  getLocaleStrings() {
+    return locales[this.settings.language] || locales.en;
+  }
+
+  onunload() {
+    if (this.autoCommitIntervalId) {
+      clearInterval(this.autoCommitIntervalId);
+      this.autoCommitIntervalId = null;
+    }
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
+    this.setupAutoCommit();
   }
 
-  // updateRemoteUrlIfNeeded() {
-  //   const token = this.settings.token;
-  //   if (!token) return;
-
-  //   const adapter = this.app.vault.adapter;
-  //   const cwd = adapter.getBasePath();
-
-  //   exec(`git remote set-url origin https://${token}@github.com/USERNAME/REPO.git`, { cwd });
-  // }
-
-  gitPull() {
-    const adapter = this.app.vault.adapter;
-    if (!(adapter instanceof FileSystemAdapter)) {
-      console.error("Adapter is not FileSystemAdapter");
-      return;
-    }
-    const cwd = adapter.getBasePath();
-
-    exec("git pull", { cwd }, (err, stdout, stderr) => {
-      if (stderr.includes("could not read Username")) {
-        new Notice("Git авторизація не вдалася. Перевір доступ до репозиторію (SSH або PAT).");
-      }
-      if (err) {
-        console.error("Git pull error:", stderr);
-      } else {
-        console.log("Git pull success:", stdout);
-      }
-    });
-  }
-
-  getChangedFiles(): Promise<string[]> {
-    const adapter = this.app.vault.adapter;
-    if (!(adapter instanceof FileSystemAdapter)) {
-      return Promise.reject("Adapter is not FileSystemAdapter");
-    }
-    const cwd = adapter.getBasePath();
-
-    return new Promise((resolve, reject) => {
-      exec("git status --porcelain", { cwd }, (err, stdout) => {
-        if (err) {
-          reject(err);
-        } else {
-          const files = stdout
-            .split("\n")
-            .filter(line => line.trim().length > 0)
-            .map(line => line.slice(3));
-          resolve(files);
-        }
-      });
-    });
-  }
-
-  commitAndPush(message: string) {
-    const adapter = this.app.vault.adapter;
-    if (!(adapter instanceof FileSystemAdapter)) {
-      console.error("Adapter is not FileSystemAdapter");
-      return;
-    }
-    const cwd = adapter.getBasePath();
-
-    exec(`git add . && git commit -m "${message}" && git push`, { cwd }, (err, stdout, stderr) => {
-      if (err) {
-        console.error("Git commit/push error:", stderr);
-      } else {
-        console.log("Git commit/push success:", stdout);
-      }
-    });
+  async resetSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS);
+    await this.saveSettings();
   }
 }

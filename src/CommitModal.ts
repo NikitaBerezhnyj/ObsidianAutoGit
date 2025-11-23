@@ -1,27 +1,17 @@
 import { Modal, App, Setting } from "obsidian";
-
-interface CommitModalOptions {
-  changedFiles: string[];
-  onSubmit: (message: string) => void;
-  locale: {
-    commitTitle: string;
-    changedFiles: string;
-    commitMessage: string;
-    save: string;
-    cancel: string;
-  };
-}
+import { ICommitModalOptions } from "./types/ICommitModalOptions";
 
 export class CommitModal extends Modal {
   changedFiles: string[];
   onSubmit: (message: string) => void;
-  locale: CommitModalOptions["locale"];
+  locale: ICommitModalOptions["locale"];
+  messageInput = "";
 
   constructor(
     app: App,
     changedFiles: string[],
     onSubmit: (message: string) => void,
-    locale: CommitModalOptions["locale"]
+    locale: ICommitModalOptions["locale"]
   ) {
     super(app);
     this.changedFiles = changedFiles;
@@ -34,19 +24,33 @@ export class CommitModal extends Modal {
 
     contentEl.createEl("h2", { text: this.locale.commitTitle });
 
-    contentEl.createEl("p", { text: this.locale.changedFiles });
+    contentEl.createEl("p", {
+      text: `${this.locale.changedFiles} (${this.changedFiles.length})`
+    });
+
     const ul = contentEl.createEl("ul");
+    ul.style.maxHeight = "200px";
+    ul.style.overflowY = "auto";
+    ul.style.marginBottom = "1em";
+
     this.changedFiles.forEach(file => {
       ul.createEl("li", { text: file });
     });
 
-    let message = "";
-
     new Setting(contentEl).setName(this.locale.commitMessage).addText(text => {
-      text.onChange(value => {
-        message = value;
-      });
       text.inputEl.style.width = "100%";
+      text.onChange(value => {
+        this.messageInput = value;
+      });
+
+      setTimeout(() => text.inputEl.focus(), 100);
+
+      text.inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          this.handleSubmit();
+        }
+      });
     });
 
     new Setting(contentEl)
@@ -55,8 +59,7 @@ export class CommitModal extends Modal {
           .setButtonText(this.locale.save)
           .setCta()
           .onClick(() => {
-            this.close();
-            this.onSubmit(message);
+            this.handleSubmit();
           })
       )
       .addButton(btn =>
@@ -64,6 +67,15 @@ export class CommitModal extends Modal {
           this.close();
         })
       );
+  }
+
+  handleSubmit() {
+    if (!this.messageInput.trim()) {
+      this.messageInput = `Update ${this.changedFiles.length} file(s)`;
+    }
+
+    this.close();
+    this.onSubmit(this.messageInput);
   }
 
   onClose() {
