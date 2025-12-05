@@ -1,96 +1,145 @@
-# Obsidian Sample Plugin
+# Obsidian Auto Git
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Repository has [english :uk:](#obsidian-auto-git-uk) and [ukrainian :ukraine:](#obsidian-auto-git-ukraine) localization.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Obsidian Auto Git :uk:
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
+Obsidian Auto Git is a plugin for Obsidian that automates interactions with a Git repository, keeping your notes up to date across all your devices. The plugin automatically performs a **pull on startup** and a **push at a defined interval**, eliminating the need to manually manage synchronization.
 
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open Sample Modal" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+### Overview
 
-## First time developing plugins?
+The goal of this project is to make using Obsidian in a multi-device environment convenient and reliable while minimizing the risk of data loss and conflicts.
+The plugin works on top of Git and integrates with your Vault repository to ensure continuous synchronization of changes.
 
-Quick starting guide for new plugin devs:
+### Features
 
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
+- 🔄 **Auto Pull on Start** — automatically fetch changes when Obsidian starts.
+- ⏱️ **Scheduled Auto Push** — automatically push changes at a specified interval.
+- 🔧 **Configurable Settings** — adjust push interval, notifications, and more.
+- 📦 **Written in TypeScript** — modern, readable code leveraging the Obsidian API.
 
-## Releasing new releases
+### Technologies Used
 
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-auto-git-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
+- TypeScript
+- Node.js / npm
+- Obsidian Plugin API
+- Git (CLI)
 
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
+### Getting Started
 
-## Adding your plugin to the community plugin list
+To get started with Obsidian Auto Git, follow these steps:
 
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
+1. Clone the repository:
 
-## How to use
+   ```bash
+   git clone https://github.com/NikitaBerezhnyj/OsidianAutoGit.git
+   cd OsidianAutoGit
+   ```
 
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
+2. Install dependencies:
 
-## Manually installing the plugin
+   ```bash
+   npm install
+   ```
 
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
+3. Build the project:
 
-## Improve code quality with eslint (optional)
+   ```bash
+   npm run build
+   ```
 
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code.
-- To use eslint with this project, make sure to install eslint from terminal:
-  - `npm install -g eslint`
-- To use eslint to analyze this project use this command:
-  - `eslint main.ts`
-  - eslint will then create a report with suggestions for code improvement by file and line number.
-- If your source code is in a folder, such as `src`, you can use eslint with this command to analyze all files in that folder:
-  - `eslint .\src\`
+4. Copy the generated plugin to your directory:
 
-## Funding URL
+   ```
+   <vault>/.obsidian/plugins/ObsidianAutoGit
+   ```
 
-You can include funding URLs where people who use your plugin can financially support it.
+5. Enable the plugin in Obsidian settings.
 
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
+### Usage
 
-```json
-{
-  "fundingUrl": "https://buymeacoffee.com"
-}
-```
+Once the project is running, you can:
 
-If you have multiple URLs, you can also do:
+1. Configure the automatic push interval in the plugin settings.
+2. View Git status in the status bar (if this feature is enabled).
+3. Use Obsidian as usual — the plugin will keep the repository up to date automatically.
+4. Customize commit behavior, logging, and other parameters if needed.
 
-```json
-{
-  "fundingUrl": {
-    "Buy Me a Coffee": "https://buymeacoffee.com",
-    "GitHub Sponsor": "https://github.com/sponsors",
-    "Patreon": "https://www.patreon.com/"
-  }
-}
-```
+### License & Community Guidelines
 
-## API Documentation
+- [License](LICENSE) — project license.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — expected behavior for contributors.
+- [Contributing Guide](CONTRIBUTING.md) — how to help the project.
+- [Security Policy](SECURITY.md) — reporting security issues.
 
-See https://github.com/obsidianmd/obsidian-api
+---
+
+## Obsidian Auto Git :ukraine:
+
+Obsidian Auto Git — це плагін для Obsidian, що автоматизує роботу з Git-репозиторієм, забезпечуючи актуальність нотаток на всіх пристроях. Плагін автоматично виконує **pull під час запуску** та **push з певним інтервалом**, що позбавляє необхідності вручну керувати синхронізацією.
+
+### Огляд
+
+Мета проєкту — зробити використання Obsidian у багатопристроєвому середовищі зручним і надійним, мінімізувавши ризик втрати даних та конфліктів.
+Плагін працює поверх Git та інтегрується з репозиторієм Vault’у, щоб забезпечити безперервну синхронізацію змін.
+
+### Особливості
+
+- 🔄 **Auto Pull on Start** — автоматичне отримання змін при запуску Obsidian.
+- ⏱️ **Scheduled Auto Push** — автоматична відправка змін кожен встановлений інтервал.
+- 🔧 **Configurable Settings** — можливість налаштувати інтервал push, повідомлення та інше.
+- 📦 **Written in TypeScript** — сучасний, читабельний код з використанням API Obsidian.
+
+### Використані технології
+
+- TypeScript
+- Node.js / npm
+- Obsidian Plugin API
+- Git (CLI)
+
+### Початок роботи
+
+Щоб розпочати роботу з Obsidian Auto Git, виконайте такі кроки:
+
+1. Клонуйте репозиторій:
+
+   ```bash
+   git clone https://github.com/NikitaBerezhnyj/OsidianAutoGit.git
+   cd OsidianAutoGit
+   ```
+
+2. Встановіть залежності:
+
+   ```bash
+   npm install
+   ```
+
+3. Зберіть проєкт:
+
+   ```bash
+   npm run build
+   ```
+
+4. Скопіюйте згенерований плагін до вашої директорії:
+
+   ```
+   <vault>/.obsidian/plugins/ObsidianAutoGit
+   ```
+
+5. Активуйте плагін у налаштуваннях Obsidian.
+
+### Використання
+
+Після запуску проекту ви можете:
+
+1. Налаштувати інтервал автоматичного push у параметрах плагіна.
+2. Переглядати статус Git у статус-барі (якщо функціонал увімкнений).
+3. Використовувати Obsidian як зазвичай — плагін самостійно підтримуватиме актуальність репозиторію.
+4. Змінити спосіб коміту, логування та інші параметри при потребі.
+
+### Ліцензія та правила спільноти
+
+- [License](LICENSE) — ліцензія проєкту.
+- [Code of Conduct](CODE_OF_CONDUCT.md) — очікувана поведінка учасників.
+- [Contributing Guide](CONTRIBUTING.md) — як допомогти проекту.
+- [Security Policy](SECURITY.md) — повідомлення про проблеми безпеки.
